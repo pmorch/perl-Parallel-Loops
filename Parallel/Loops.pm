@@ -10,8 +10,8 @@ Parallel::Loops - Execute loops using parallel forked subprocesses
 
   use Parallel::Loops;
   
-  my $max_procs = 5;
-  my $pl =  new Parallel::Loops($max_procs);
+  my $maxProcs = 5;
+  my $pl =  new Parallel::Loops($maxProcs);
 
   my @input = (0..9);
 
@@ -25,7 +25,7 @@ Parallel::Loops - Execute loops using parallel forked subprocesses
 
       # Lets just create a simple example, but this could be a
       # massive calculation that will be parallelized, so that
-      # $max_procs different processes are calculating sqrt
+      # $maxProcs different processes are calculating sqrt
       # simultaneously for different values of $_ on different CPUs
 
       $output{$_} = sqrt($_);
@@ -164,9 +164,34 @@ Note that no check is performed for recursive forking: If the main
 process encouters a loop that it executes in parallel, and the
 execution of the loop in child processes also encounters a parallel
 loop, these will also be forked, and you'll essentially have
-$max_procs^2 running processes. It wouldn't be too hard to implement
+$maxProcs^2 running processes. It wouldn't be too hard to implement
 such a check (either inside or outside this package) but maybe this is
 what a programmer actually wants, so it isn't implemented.
+
+=head1 BUGS
+
+None known at the moment. Send any reports to peter@morch.com.
+
+Enhancements:
+
+Use Storable instead of Data::Dumper - its probably faster and better suited to
+these needs. http://www.unix.com.ua/orelly/linux/dbi/ch02_05.htm
+
+Use function prototypes (see Prototypes under perldoc perlsub). 
+
+Then we could
+
+  $pl->foreach @input {
+    yada();
+  }
+
+instead of
+
+  $pl->foreach(\@input, sub {
+    yada();
+  })
+
+and so on
 
 =head1 COPYRIGHT
 
