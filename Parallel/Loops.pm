@@ -158,6 +158,9 @@ done in parallel and the children may end in an unexpected sequence.
 But if you don't really care about the order of elements in the
 @output array then tieOutput-ing an array can be useful and fine.
 
+If you need to be able to determine which iteration generated what output, use
+a hash instead.
+
 =head2 Recursive forking is possible
 
 Note that no check is performed for recursive forking: If the main
