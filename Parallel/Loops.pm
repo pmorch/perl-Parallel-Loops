@@ -6,51 +6,55 @@ our $VERSION='0.1';
 
 Parallel::Loops - Execute loops using parallel forked subprocesses
 
+=encoding utf-8
+
 =head1 SYNOPSIS
 
-  use Parallel::Loops;
+    use Parallel::Loops;
+
+    my $maxProcs = 5;
+    my $pl = new Parallel::Loops($maxProcs);
+
+    my @input = ( 0 .. 9 );
+
+    my %output;
+    $pl->tieOutput( \%output );
+
+    $pl->foreach(
+        \@input,
+        sub {
+            # This sub "magically" executed in parallel forked child
+            # processes
+
+            # Lets just create a simple example, but this could be a
+            # massive calculation that will be parallelized, so that
+            # $maxProcs different processes are calculating sqrt
+            # simultaneously for different values of $_ on different CPUs
+
+            $output{$_} = sqrt($_);
+        }
+    );
+    foreach (@input) {
+        printf "i: %d sqrt(i): %f\n", $_, $output{$_};
+    }
   
-  my $maxProcs = 5;
-  my $pl =  new Parallel::Loops($maxProcs);
-
-  my @input = (0..9);
-
-  my %output;
-  $pl->tieOutput(\%output);
-  
-  $pl->foreach(\@input, sub {
-
-      # This sub "magically" executed in parallel forked child
-      # processes
-
-      # Lets just create a simple example, but this could be a
-      # massive calculation that will be parallelized, so that
-      # $maxProcs different processes are calculating sqrt
-      # simultaneously for different values of $_ on different CPUs
-
-      $output{$_} = sqrt($_);
-  });
-  foreach (@input) {
-    printf "i: %d sqrt(i): %f\n", $_, $output{$_};
-  }
-  
-
 You can also use @arrays instead of %hashes, and/or while loops
 instead of foreach:
 
-  my @output;
-  $pl->tieOutput(\@output);
-  
-  my $i = 0;
-  $pl->while(  sub { $i++ < 10 },
-               sub {
+    my @output;
+    $pl->tieOutput(\@output);
 
-                 # This sub "magically" executed in parallel forked
-                 # child processes
+    my $i = 0;
+    $pl->while (
+        sub { $i++ < 10 },
+        sub {
 
-                 push @output, [ $i, sqrt($i) ];
-               }
-             );
+            # This sub "magically" executed in parallel forked
+            # child processes
+
+            push @output, [ $i, sqrt($i) ];
+        }
+    );
 
 =head1 DESCRIPTION
 
@@ -77,15 +81,15 @@ for you by this module.
 
 =head2 foreach loop
 
-  $pl->foreach($arrayRef, $childBodySub)
+    $pl->foreach($arrayRef, $childBodySub)
 
 Runs $childBodySub->() with $_ set foreach element in @$arrayRef,
 except that $childBodySub is run in a forked child process to obtain
 parallelism. Essentially, this does something conceptually similar to:
 
-  foreach(@$arrayRef) {
-      $childBodySub->();
-  }
+    foreach(@$arrayRef) {
+        $childBodySub->();
+    }
 
 Any setting of hash keys or pushing to arrays that have been set with
 $pl->tieOutput() will automagically appear in the hash or array in the
@@ -93,11 +97,11 @@ parent process.
 
 If you like loop variables, you can run it like so:
 
-  $pl->foreach(\@input, sub {
-      my $i = $_;
-      ..bla, bla, bla...
-      $output{$i} = sqrt($i);
-  });
+    $pl->foreach( \@input, sub {
+            my $i = $_;
+            .. bla, bla, bla ... $output{$i} = sqrt($i);
+        }
+    );
 
 =head2 while loop
 
@@ -117,13 +121,13 @@ Output is transfered via tieOutput() like in L</foreach loop> above.
 Note that incrementing $i in the $childBodySub like in this example
 B<will not work>:
 
-  $pl->while( sub { $i < 5 },
-              sub { 
-                    $output{$i} = sqrt($i);
-                    # Won't work!
-                    $i++ 
-              }
-            );
+   $pl->while( sub { $i < 5 },
+               sub { 
+                   $output{$i} = sqrt($i);
+                   # Won't work!
+                   $i++ 
+               }
+             );
 
 Because $childBodySub is executed in a child, and so while $i would
 be incremented in the child, that change would not make it to the
@@ -171,41 +175,74 @@ $maxProcs^2 running processes. It wouldn't be too hard to implement
 such a check (either inside or outside this package) but maybe this is
 what a programmer actually wants, so it isn't implemented.
 
-=head1 BUGS
+=head1 SEE ALSO
 
-None known at the moment. Send any reports to peter@morch.com.
+This module uses fork(). ithreads could have been possible too, but was not
+chosen. You may want to check out:
+
+When to use forks, when to use threads ...?
+L<http://www.perlmonks.org/index.pl?node_id=709061>
+
+The forks module (not used here)
+L<http://search.cpan.org/search?query=forks>
+
+threads in perlthrtut
+L<http://perldoc.perl.org/perlthrtut.html>
+
+=head1 DEPENDENCIES
+
+I believe this is the only dependency that isn't part of core perl:
+
+    use Parallel::ForkManager;
+
+These should all be in perl's core:
+
+    use Data::Dumper;
+    use IO::Handle;
+    use Tie::Array;
+    use Tie::Hash;
+    use UNIVERSAL qw(isa);
+
+=head1 BUGS / ENHANCEMENTS
+
+No bugs are known at the moment. Send any reports to peter@morch.com.
 
 Enhancements:
 
 Use Storable instead of Data::Dumper - its probably faster and better suited to
 these needs. http://www.unix.com.ua/orelly/linux/dbi/ch02_05.htm
 
-Use function prototypes (see Prototypes under perldoc perlsub). 
+Maybe use function prototypes (see Prototypes under perldoc perlsub). 
 
-Then we could
+Then we could do something like
 
-  $pl->foreach @input {
-    yada();
-  }
+    pl_foreach @input {
+        yada($_);
+    };
 
 instead of
 
-  $pl->foreach(\@input, sub {
-    yada();
-  })
+    $pl->foreach(\@input, sub {
+        yada($_);
+    });
 
-and so on
+and so on, where the suggestion above means global variables. Unfortunately,
+methods aren't supported by prototypes, so this will never be posssible:
+
+    $pl->foreach @input {
+        yada($_);
+    };
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008 Peter Valdemar Morch <peter@morch.com>
+Copyright (c) 2008 Peter Valdemar Mørch <peter@morch.com>
 
 All right reserved. This program is free software; you can redistribute it 
 and/or modify it under the same terms as Perl itself.
 
 =head1 AUTHOR
 
-  Peter Valdemar Morch <peter@morch.com>
+  Peter Valdemar Mørch <peter@morch.com>
 
 =cut
 
@@ -233,9 +270,9 @@ sub tieOutput {
             push @{$$self{tieObjects}}, $storage;
             push @{$$self{tieHashes}}, [$$self{tieOutputNr}, $ref];
         } elsif (ref $ref && isa $ref, 'ARRAY') {
-            # $storage will point to the Parallel::Loops::TiedHash object
+            # $storage will point to the Parallel::Loops::TiedArray object
             my $storage;
-            tie %$ref, 'Parallel::Loops::TiedArray', $self, \$storage;
+            tie @$ref, 'Parallel::Loops::TiedArray', $self, \$storage;
             push @{$$self{tieObjects}}, $storage;
             push @{$$self{tieArrays}}, [$$self{tieOutputNr}, $ref];
         } else {
@@ -408,7 +445,7 @@ sub dumpChildInfo {
 }
 
 package Parallel::Loops::TiedArray;
-use Tie::Hash;
+use Tie::Array;
 use base 'Tie::Array';
 
 sub TIEARRAY {
@@ -433,7 +470,6 @@ sub PUSH {
     my $self = shift;
 
     if ( $$self{loops}->in_child() ) {
-        use Data::Dumper; print Dumper("Adding elements:", @_);
         push( @{ $self->{childArr} }, @_ );
     }
 
