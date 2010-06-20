@@ -210,13 +210,18 @@ No bugs are known at the moment. Send any reports to peter@morch.com.
 Enhancements:
 
 Use Storable instead of Data::Dumper - its probably faster and better suited to
-these needs. http://www.unix.com.ua/orelly/linux/dbi/ch02_05.htm
+these needs. L<http://www.unix.com.ua/orelly/linux/dbi/ch02_05.htm>
 
 Maybe use function prototypes (see Prototypes under perldoc perlsub). 
 
 Then we could do something like
 
     pl_foreach @input {
+        yada($_);
+    };
+or
+
+    pl_foreach $pl @input {
         yada($_);
     };
 
@@ -226,12 +231,17 @@ instead of
         yada($_);
     });
 
-and so on, where the suggestion above means global variables. Unfortunately,
-methods aren't supported by prototypes, so this will never be posssible:
+and so on, where the first suggestion above means global variables (yikes!).
+Unfortunately, methods aren't supported by prototypes, so this will never be
+posssible:
 
     $pl->foreach @input {
         yada($_);
     };
+
+An alternative pointed out by the perlmonks chatterbox could be to use
+L<Devel::Declare|http://search.cpan.org/perldoc?Devel::Declare> "if I can stand
+pain".
 
 =head1 COPYRIGHT
 
