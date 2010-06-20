@@ -1,0 +1,227 @@
+NAME
+    Parallel::Loops - Execute loops using parallel forked subprocesses
+
+SYNOPSIS
+        use Parallel::Loops;
+
+        my $maxProcs = 5;
+        my $pl = new Parallel::Loops($maxProcs);
+
+        my @input = ( 0 .. 9 );
+
+        my %output;
+        $pl->tieOutput( \%output );
+
+        $pl->foreach(
+            \@input,
+            sub {
+                # This sub "magically" executed in parallel forked child
+                # processes
+
+                # Lets just create a simple example, but this could be a
+                # massive calculation that will be parallelized, so that
+                # $maxProcs different processes are calculating sqrt
+                # simultaneously for different values of $_ on different CPUs
+
+                $output{$_} = sqrt($_);
+            }
+        );
+        foreach (@input) {
+            printf "i: %d sqrt(i): %f\n", $_, $output{$_};
+        }
+
+    You can also use @arrays instead of %hashes, and/or while loops instead
+    of foreach:
+
+        my @output;
+        $pl->tieOutput(\@output);
+
+        my $i = 0;
+        $pl->while (
+            sub { $i++ < 10 },
+            sub {
+
+                # This sub "magically" executed in parallel forked
+                # child processes
+
+                push @output, [ $i, sqrt($i) ];
+            }
+        );
+
+DESCRIPTION
+    Often a loop performs calculations where each iteration of the loop does
+    not depend on the previous iteration, and the iterations really could be
+    carried out in any order.
+
+    This module allows you to run such loops in parallel using all the CPUs
+    at your disposal.
+
+    Output is automatically transfered from children to parents via %hashes
+    or @arrays, that have explicitly been configured for that sort of
+    monitoring via $pl->tieOutput(). Hashes will transfer keys that are set
+    in children (but not cleared or unset), and elements that are pushed to
+    @arrays in children are pushed to the parent @array too (but note that
+    the order is not guaranteed to be the same as it would have been if done
+    all in one process, since there is no way of knowing which child would
+    finish first!)
+
+    If you can see past the slightly weird syntax, you're basically getting
+    foreach and while loops that can run in parallel without having to
+    bother with fork, pipes, signals etc. This is all handled for you by
+    this module.
+
+  foreach loop
+        $pl->foreach($arrayRef, $childBodySub)
+
+    Runs $childBodySub->() with $_ set foreach element in @$arrayRef, except
+    that $childBodySub is run in a forked child process to obtain
+    parallelism. Essentially, this does something conceptually similar to:
+
+        foreach(@$arrayRef) {
+            $childBodySub->();
+        }
+
+    Any setting of hash keys or pushing to arrays that have been set with
+    $pl->tieOutput() will automagically appear in the hash or array in the
+    parent process.
+
+    If you like loop variables, you can run it like so:
+
+        $pl->foreach( \@input, sub {
+                my $i = $_;
+                .. bla, bla, bla ... $output{$i} = sqrt($i);
+            }
+        );
+
+  while loop
+      $pl->while($conditionSub, $childBodySub)
+
+    Essentially, this does something conceptually similar to:
+
+      while($conditionSub->()) {
+          $childBodySub->();
+      }
+
+    except that $childBodySub->() is executed in a forked child process.
+    Output is transfered via tieOutput() like in "foreach loop" above.
+
+   while loops must affect condition outside $childBodySub
+    Note that incrementing $i in the $childBodySub like in this example will
+    not work:
+
+       $pl->while( sub { $i < 5 },
+                   sub { 
+                       $output{$i} = sqrt($i);
+                       # Won't work!
+                       $i++ 
+                   }
+                 );
+
+    Because $childBodySub is executed in a child, and so while $i would be
+    incremented in the child, that change would not make it to the parent,
+    where $conditionSub is evaluated. The changes that make $conditionSub
+    return false eventually *must* take place outside the $childBodySub so
+    it is executed in the parent. (Adhering to the parallel principle that
+    one iteration may not affect any other iterations - including whether to
+    run them or not)
+
+  tieOutput
+      $pl->tieOutput(\%output, \@output, ...)
+
+    Each of the arguments to tieOutput() are instrumented, so that when a
+    hash key is set or array element pushed in a child, this is transfered
+    to the parent's hash or array automatically when a child is finished.
+
+    Note the limitation Only keys being set like "$hash{'key'} = 'value'"
+    and arrays elements being pushed like "push @array, 'value'" will be
+    transfered to the parent. Unsetting keys, or setting particluar array
+    elements with $array[3]='value' will be lost if done in the children. In
+    the parent process all the %hashes and @arrays are full-fledged, and you
+    can used all operations. But only these operations in the child
+    processes make it back to the parent.
+
+   Array element sequence not defined
+    Note that when using tieOutput() for @output arrays, the sequence of
+    elements in @output is not guaranteed to be the same as you'd see with a
+    normal sequential while or foreach loop, since the calculations are done
+    in parallel and the children may end in an unexpected sequence. But if
+    you don't really care about the order of elements in the @output array
+    then tieOutput-ing an array can be useful and fine.
+
+    If you need to be able to determine which iteration generated what
+    output, use a hash instead.
+
+  Recursive forking is possible
+    Note that no check is performed for recursive forking: If the main
+    process encouters a loop that it executes in parallel, and the execution
+    of the loop in child processes also encounters a parallel loop, these
+    will also be forked, and you'll essentially have $maxProcs^2 running
+    processes. It wouldn't be too hard to implement such a check (either
+    inside or outside this package) but maybe this is what a programmer
+    actually wants, so it isn't implemented.
+
+SEE ALSO
+    This module uses fork(). ithreads could have been possible too, but was
+    not chosen. You may want to check out:
+
+    When to use forks, when to use threads ...?
+    <http://www.perlmonks.org/index.pl?node_id=709061>
+
+    The forks module (not used here)
+    <http://search.cpan.org/search?query=forks>
+
+    threads in perlthrtut <http://perldoc.perl.org/perlthrtut.html>
+
+DEPENDENCIES
+    I believe this is the only dependency that isn't part of core perl:
+
+        use Parallel::ForkManager;
+
+    These should all be in perl's core:
+
+        use Data::Dumper;
+        use IO::Handle;
+        use Tie::Array;
+        use Tie::Hash;
+        use UNIVERSAL qw(isa);
+
+BUGS / ENHANCEMENTS
+    No bugs are known at the moment. Send any reports to peter@morch.com.
+
+    Enhancements:
+
+    Use Storable instead of Data::Dumper - its probably faster and better
+    suited to these needs.
+    http://www.unix.com.ua/orelly/linux/dbi/ch02_05.htm
+
+    Maybe use function prototypes (see Prototypes under perldoc perlsub).
+
+    Then we could do something like
+
+        pl_foreach @input {
+            yada($_);
+        };
+
+    instead of
+
+        $pl->foreach(\@input, sub {
+            yada($_);
+        });
+
+    and so on, where the suggestion above means global variables.
+    Unfortunately, methods aren't supported by prototypes, so this will
+    never be posssible:
+
+        $pl->foreach @input {
+            yada($_);
+        };
+
+COPYRIGHT
+    Copyright (c) 2008 Peter Valdemar Mørch <peter@morch.com>
+
+    All right reserved. This program is free software; you can redistribute
+    it and/or modify it under the same terms as Perl itself.
+
+AUTHOR
+      Peter Valdemar Mørch <peter@morch.com>
+
