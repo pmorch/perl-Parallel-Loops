@@ -13,7 +13,7 @@ Parallel::Loops - Execute loops using parallel forked subprocesses
     use Parallel::Loops;
 
     my $maxProcs = 5;
-    my $pl = new Parallel::Loops($maxProcs);
+    my $pl = Parallel::Loops->new($maxProcs);
 
     my @input = ( 0 .. 9 );
 
