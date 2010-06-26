@@ -7,51 +7,44 @@ SYNOPSIS
         my $maxProcs = 5;
         my $pl = Parallel::Loops->new($maxProcs);
 
-        my @input = ( 0 .. 9 );
+        my @parameters = ( 0 .. 9 );
 
         # We want to perform some hefty calculation for each @input and store each
         # calculation's result in %output. For that reason, we "tie" %output, so
         # that changes to %output in any child process (see below) are
         # automatically transfered and updated in the parent also.
 
-        my %output;
-        $pl->tieOutput( \%output );
+        my %returnValues;
+        $pl->share( \%returnValues );
 
-        $pl->foreach(
-            \@input,
-            sub {
-                # This sub "magically" executed in parallel forked child
-                # processes
+        $pl->foreach( \@parameters, sub {
+            # This sub "magically" executed in parallel forked child
+            # processes
 
-                # Lets just create a simple example, but this could be a
-                # massive calculation that will be parallelized, so that
-                # $maxProcs different processes are calculating sqrt
-                # simultaneously for different values of $_ on different CPUs
+            # Lets just create a simple example, but this could be a
+            # massive calculation that will be parallelized, so that
+            # $maxProcs different processes are calculating sqrt
+            # simultaneously for different values of $_ on different CPUs
 
-                $output{$_} = sqrt($_);
-            }
-        );
-        foreach (@input) {
-            printf "i: %d sqrt(i): %f\n", $_, $output{$_};
+            $returnValues{$_} = sqrt($_);
+        });
+        foreach (@parameters) {
+            printf "i: %d sqrt(i): %f\n", $_, $returnValues{$_};
         }
 
     You can also use @arrays instead of %hashes, and/or while loops instead
     of foreach:
 
-        my @output;
-        $pl->tieOutput(\@output);
+        my @returnValues;
+        $pl->share(\@returnValues);
 
         my $i = 0;
-        $pl->while (
-            sub { $i++ < 10 },
-            sub {
+        $pl->while ( sub { $i++ < 10 }, sub {
+            # This sub "magically" executed in parallel forked
+            # child processes
 
-                # This sub "magically" executed in parallel forked
-                # child processes
-
-                push @output, [ $i, sqrt($i) ];
-            }
-        );
+            push @returnValues, [ $i, sqrt($i) ];
+        });
 
 DESCRIPTION
     Often a loop performs calculations where each iteration of the loop does
@@ -61,18 +54,18 @@ DESCRIPTION
     This module allows you to run such loops in parallel using all the CPUs
     at your disposal.
 
-    Output is automatically transfered from children to parents via %hashes
-    or @arrays, that have explicitly been configured for that sort of
-    monitoring via $pl->tieOutput(). Hashes will transfer keys that are set
-    in children (but not cleared or unset), and elements that are pushed to
+    Return values are automatically transfered from children to parents via
+    %hashes or @arrays, that have explicitly been configured for that sort
+    of sharing via $pl->share(). Hashes will transfer keys that are set in
+    children (but not cleared or unset), and elements that are pushed to
     @arrays in children are pushed to the parent @array too (but note that
     the order is not guaranteed to be the same as it would have been if done
     all in one process, since there is no way of knowing which child would
     finish first!)
 
-    If you can see past the slightly weird syntax, you're basically getting
-    foreach and while loops that can run in parallel without having to
-    bother with fork, pipes, signals etc. This is all handled for you by
+    If you can see past the slightly awkward syntax, you're basically
+    getting foreach and while loops that can run in parallel without having
+    to bother with fork, pipes, signals etc. This is all handled for you by
     this module.
 
   foreach loop
@@ -87,7 +80,7 @@ DESCRIPTION
         }
 
     Any setting of hash keys or pushing to arrays that have been set with
-    $pl->tieOutput() will automagically appear in the hash or array in the
+    $pl->share() will automagically appear in the hash or array in the
     parent process.
 
     If you like loop variables, you can run it like so:
@@ -108,7 +101,7 @@ DESCRIPTION
       }
 
     except that $childBodySub->() is executed in a forked child process.
-    Output is transfered via tieOutput() like in "foreach loop" above.
+    Return values are transfered via share() like in "foreach loop" above.
 
    while loops must affect condition outside $childBodySub
     Note that incrementing $i in the $childBodySub like in this example will
@@ -130,28 +123,28 @@ DESCRIPTION
     one iteration may not affect any other iterations - including whether to
     run them or not)
 
-  tieOutput
-      $pl->tieOutput(\%output, \@output, ...)
+  share
+      $pl->share(\%output, \@output, ...)
 
-    Each of the arguments to tieOutput() are instrumented, so that when a
-    hash key is set or array element pushed in a child, this is transfered
-    to the parent's hash or array automatically when a child is finished.
+    Each of the arguments to share() are instrumented, so that when a hash
+    key is set or array element pushed in a child, this is transfered to the
+    parent's hash or array automatically when a child is finished.
 
     Note the limitation Only keys being set like "$hash{'key'} = 'value'"
     and arrays elements being pushed like "push @array, 'value'" will be
     transfered to the parent. Unsetting keys, or setting particluar array
     elements with $array[3]='value' will be lost if done in the children. In
     the parent process all the %hashes and @arrays are full-fledged, and you
-    can used all operations. But only these operations in the child
+    can use all operations. But only these mentioned operations in the child
     processes make it back to the parent.
 
    Array element sequence not defined
-    Note that when using tieOutput() for @output arrays, the sequence of
-    elements in @output is not guaranteed to be the same as you'd see with a
-    normal sequential while or foreach loop, since the calculations are done
-    in parallel and the children may end in an unexpected sequence. But if
-    you don't really care about the order of elements in the @output array
-    then tieOutput-ing an array can be useful and fine.
+    Note that when using share() for @returnValue arrays, the sequence of
+    elements in @returnValue is not guaranteed to be the same as you'd see
+    with a normal sequential while or foreach loop, since the calculations
+    are done in parallel and the children may end in an unexpected sequence.
+    But if you don't really care about the order of elements in the
+    @returnValue array then share-ing an array can be useful and fine.
 
     If you need to be able to determine which iteration generated what
     output, use a hash instead.
@@ -162,8 +155,7 @@ DESCRIPTION
     of the loop in child processes also encounters a parallel loop, these
     will also be forked, and you'll essentially have $maxProcs^2 running
     processes. It wouldn't be too hard to implement such a check (either
-    inside or outside this package) but maybe this is what a programmer
-    actually wants, so it isn't implemented.
+    inside or outside this package).
 
 SEE ALSO
     This module uses fork(). ithreads could have been possible too, but was
@@ -198,6 +190,13 @@ BUGS / ENHANCEMENTS
     Use Storable instead of Data::Dumper - its probably faster and better
     suited to these needs.
     <http://www.unix.com.ua/orelly/linux/dbi/ch02_05.htm>
+
+    Optionally prevent recursive forking: If a forked child encounters a
+    Parallel::Loop it should be possible to prevent that Parallel::Loop
+    instance to also create forks.
+
+    Determine the number of CPUs so that new()'s $maxProcs parameter can be
+    optional. Could use e.g. Sys::Sysconf, UNIX::Processors or Sys::CPU.
 
     Maybe use function prototypes (see Prototypes under perldoc perlsub).
 

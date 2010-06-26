@@ -17,10 +17,10 @@ my $pl = new Parallel::Loops($maxProcs);
 my @iterations = ( 0 .. 4 );
 
 my %output;
-$pl->tieOutput( \%output );
+$pl->share( \%output );
 
 my @pids;
-$pl->tieOutput( \@pids );
+$pl->share( \@pids );
 
 sub checkResults {
     my @seenPids;
