@@ -1,0 +1,6 @@
+Version 0.02:
+    - Renamed tieOutput to share (API change!)
+    - Let both while and foreach return values from the children
+    - Use Storable instead of Data::Dumper
+Version 0.01:
+    - Initial version
