@@ -194,7 +194,7 @@ I believe this is the only dependency that isn't part of core perl:
 
 These should all be in perl's core:
 
-    use Data::Dumper;
+    use Storable;
     use IO::Handle;
     use Tie::Array;
     use Tie::Hash;
@@ -205,9 +205,6 @@ These should all be in perl's core:
 No bugs are known at the moment. Send any reports to peter@morch.com.
 
 Enhancements:
-
-Use Storable instead of Data::Dumper - its probably faster and better suited to
-these needs. L<http://www.unix.com.ua/orelly/linux/dbi/ch02_05.htm>
 
 Optionally prevent recursive forking: If a forked child encounters a
 Parallel::Loop it should be possible to prevent that Parallel::Loop instance to
@@ -264,7 +261,7 @@ use strict;
 use warnings;
 
 use IO::Handle;
-use Data::Dumper;
+use Storable;
 use Parallel::ForkManager;
 use UNIVERSAL qw(isa);
 
@@ -307,8 +304,8 @@ sub readChangesFromChild {
     while (<$childRdr>) {
         $childOutput .= $_;
     }
-    my @output;
-    eval $childOutput;
+    my @output = @{ Storable::thaw($childOutput) };
+
     foreach my $set (@{$$self{tieHashes}}) {
         my ($outputNr, $h) = @$set;
         foreach my $k (keys %{$output[$outputNr]}) {
@@ -326,9 +323,11 @@ sub readChangesFromChild {
 sub printChangesToParent {
     my ($self, $parentWtr) = @_;
     my $outputNr = 0;
+    my @childInfo;
     foreach (@{$$self{tieObjects}}) {
-       print $parentWtr $_->dumpChildInfo($outputNr++); 
+        push @childInfo, $_->getChildInfo();
     }
+    print $parentWtr Storable::freeze(\@childInfo); 
 }
 
 sub foreach {
@@ -354,6 +353,8 @@ sub foreach {
         my $childRdr  = IO::Handle->new();
         pipe( $childRdr, $parentWtr )
             or die "Couldn't open a pipe";
+        binmode $parentWtr;
+        binmode $childRdr;
         $parentWtr->autoflush(1);
         
         my $pid = $fm->start( ++$childCounter );
@@ -402,6 +403,8 @@ sub while {
         my $childRdr  = IO::Handle->new();
         pipe( $childRdr, $parentWtr )
             or die "Couldn't open a pipe";
+        binmode $parentWtr;
+        binmode $childRdr;
         $parentWtr->autoflush(1);
         
         my $pid = $fm->start( ++$childCounter );
@@ -451,11 +454,10 @@ sub STORE {
     $$hash{$key} = $value;
 }
 
-sub dumpChildInfo {
+sub getChildInfo {
     my ($self, $outputNr) = @_;
     my $extra = $$self[1];
-    my $dumper = Data::Dumper->new([$extra->{childKeys}],["output[$outputNr]"]);
-    return $dumper->Dump();
+    return $extra->{childKeys};
 }
 
 package Parallel::Loops::TiedArray;
@@ -490,10 +492,9 @@ sub PUSH {
     push( @{ $self->{arr} }, @_ );
 }
 
-sub dumpChildInfo {
-    my ($self, $outputNr) = @_;
-    my $dumper = Data::Dumper->new([$self->{childArr}],["output[$outputNr]"]);
-    return $dumper->Dump();
+sub getChildInfo {
+    my ($self) = @_;
+    return $self->{childArr};
 }
 
 1;
