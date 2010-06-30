@@ -9,10 +9,11 @@ SYNOPSIS
 
         my @parameters = ( 0 .. 9 );
 
-        # We want to perform some hefty calculation for each @input and store each
-        # calculation's result in %output. For that reason, we "tie" %output, so
-        # that changes to %output in any child process (see below) are
-        # automatically transfered and updated in the parent also.
+        # We want to perform some hefty calculation for each @input and
+        # store each calculation's result in %output. For that reason, we
+        # "tie" %output, so that changes to %output in any child process
+        # (see below) are automatically transfered and updated in the
+        # parent also.
 
         my %returnValues;
         $pl->share( \%returnValues );
@@ -44,6 +45,16 @@ SYNOPSIS
             # child processes
 
             push @returnValues, [ $i, sqrt($i) ];
+        });
+
+    And you can have both foreach and while return values so that
+    $pl->share() isn't required at all:
+
+        my $maxProcs = 5;
+        my $pl = Parallel::Loops->new($maxProcs);
+        my %returnValues = $pl->foreach( [ 0..9 ], sub {
+            # Again, this is executed in a forked child
+            $_ => sqrt($_);
         });
 
 DESCRIPTION
@@ -176,7 +187,7 @@ DEPENDENCIES
 
     These should all be in perl's core:
 
-        use Data::Dumper;
+        use Storable;
         use IO::Handle;
         use Tie::Array;
         use Tie::Hash;
@@ -186,10 +197,6 @@ BUGS / ENHANCEMENTS
     No bugs are known at the moment. Send any reports to peter@morch.com.
 
     Enhancements:
-
-    Use Storable instead of Data::Dumper - its probably faster and better
-    suited to these needs.
-    <http://www.unix.com.ua/orelly/linux/dbi/ch02_05.htm>
 
     Optionally prevent recursive forking: If a forked child encounters a
     Parallel::Loop it should be possible to prevent that Parallel::Loop

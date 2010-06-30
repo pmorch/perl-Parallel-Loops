@@ -1,3 +1,5 @@
+Version 0.03:
+    - Forgot to update README
 Version 0.02:
     - Renamed tieOutput to share (API change!)
     - Let both while and foreach return values from the children
