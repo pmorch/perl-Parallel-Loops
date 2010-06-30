@@ -399,6 +399,14 @@ sub foreach {
     if (ref $_[1] eq 'ARRAY') {
         ($self, $arrayRef, $sub) = @_;
     } else {
+        # Note that this second usage is not documented (and hence not
+        # supported). It isn't really useful, but this is how to use it just in
+        # case:
+        #
+        # my $foo;
+        # my %returnValues = $pl->foreach( \$foo, [ 0..9 ], sub {
+        #     $foo => sqrt($foo);
+        # });
         ($self, $varRef, $arrayRef, $sub) = @_;
     }
     my $i = -1;
