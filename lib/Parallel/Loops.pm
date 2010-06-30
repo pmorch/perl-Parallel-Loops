@@ -330,61 +330,6 @@ sub printChangesToParent {
     print $parentWtr Storable::freeze(\@childInfo); 
 }
 
-sub foreach {
-    my ($self, $varRef, $arrayRef, $sub);
-    if (ref $_[1] eq 'ARRAY') {
-        ($self, $arrayRef, $sub) = @_;
-    } else {
-        ($self, $varRef, $arrayRef, $sub) = @_;
-    }
-    my %childHandles;
-    my $fm = Parallel::ForkManager->new($$self{maxProcs});
-    $$self{forkManager} = $fm;
-    $fm->run_on_finish( sub {
-        my ($pid) = @_;
-        my $childRdr = $childHandles{$pid};
-        $self->readChangesFromChild($childRdr);
-    });
-    my $childCounter = 0;
-    foreach my $i (@$arrayRef) {
-        # Setup pipes so the child can send info back to the parent about
-        # output data.
-        my $parentWtr = IO::Handle->new();
-        my $childRdr  = IO::Handle->new();
-        pipe( $childRdr, $parentWtr )
-            or die "Couldn't open a pipe";
-        binmode $parentWtr;
-        binmode $childRdr;
-        $parentWtr->autoflush(1);
-        
-        my $pid = $fm->start( ++$childCounter );
-
-        if ($pid) {
-            # We're running in the parent...
-            close $parentWtr;
-            $childHandles{$pid} = $childRdr;
-            next; 
-        }
-
-        # Setup either $varRef or $_, if no such given before calling $sub->()
-        if ($varRef) {
-            $$varRef = $i;
-        } else {
-            $_ = $i;
-        }
-
-        # We're running in the child
-        $sub->();
-
-        $self->printChangesToParent($parentWtr);
-        close $parentWtr;
-
-        $fm->finish($childCounter);    # pass an exit code to finish
-    }
-    $fm->wait_all_children;
-    delete $$self{forkManager};
-}
-
 sub while {
     my ($self, $continueSub, $bodySub) = @_;
     my %childHandles;
@@ -426,6 +371,26 @@ sub while {
     }
     $fm->wait_all_children;
     delete $$self{forkManager};
+}
+
+# foreach is implemented via while above
+sub foreach {
+    my ($self, $varRef, $arrayRef, $sub);
+    if (ref $_[1] eq 'ARRAY') {
+        ($self, $arrayRef, $sub) = @_;
+    } else {
+        ($self, $varRef, $arrayRef, $sub) = @_;
+    }
+    my $i = -1;
+    $self->while( sub { ++$i <= $#{$arrayRef} }, sub {
+        # Setup either $varRef or $_, if no such given before calling $sub->()
+        if ($varRef) {
+            $$varRef = $i;
+        } else {
+            $_ = $i;
+        }
+        $sub->();
+    });
 }
 
 package Parallel::Loops::TiedHash;
