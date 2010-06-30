@@ -157,10 +157,13 @@ to the parent's hash or array automatically when a child is finished.
 B<Note the limitation> Only keys being set like C<$hash{'key'} = 'value'> and
 arrays elements being pushed like C<push @array, 'value'> will be transfered to
 the parent. Unsetting keys, or setting particluar array elements with
-$array[3]='value' will be lost if done in the children. In the parent process
-all the %hashes and @arrays are full-fledged, and you can use all operations.
-But only these mentioned operations in the child processes make it back to the
+$array[3]='value' will be lost if done in the children. Also, if two different
+children set a value for the same key, a random one of them will be seen by the
 parent.
+
+In the parent process all the %hashes and @arrays are full-fledged, and you can
+use all operations.  But only these mentioned operations in the child processes
+make it back to the parent.
 
 =head3 Array element sequence not defined
 
