@@ -17,10 +17,11 @@ Parallel::Loops - Execute loops using parallel forked subprocesses
 
     my @parameters = ( 0 .. 9 );
 
-    # We want to perform some hefty calculation for each @input and store each
-    # calculation's result in %output. For that reason, we "tie" %output, so
-    # that changes to %output in any child process (see below) are
-    # automatically transfered and updated in the parent also.
+    # We want to perform some hefty calculation for each @input and
+    # store each calculation's result in %output. For that reason, we
+    # "tie" %output, so that changes to %output in any child process
+    # (see below) are automatically transfered and updated in the
+    # parent also.
 
     my %returnValues;
     $pl->share( \%returnValues );
