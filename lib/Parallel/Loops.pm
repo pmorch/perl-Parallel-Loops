@@ -54,6 +54,16 @@ instead of foreach:
         push @returnValues, [ $i, sqrt($i) ];
     });
 
+And you can have both foreach and while return values so that $pl->share()
+isn't required at all:
+
+    my $maxProcs = 5;
+    my $pl = Parallel::Loops->new($maxProcs);
+    my %returnValues = $pl->foreach( [ 0..9 ], sub {
+        # Again, this is executed in a forked child
+        $_ => sqrt($_);
+    });
+
 =head1 DESCRIPTION
 
 Often a loop performs calculations where each iteration of the loop
@@ -305,6 +315,7 @@ sub readChangesFromChild {
         $childOutput .= $_;
     }
     my @output = @{ Storable::thaw($childOutput) };
+    my $retval = shift @output;
 
     foreach my $set (@{$$self{tieHashes}}) {
         my ($outputNr, $h) = @$set;
@@ -318,12 +329,13 @@ sub readChangesFromChild {
             push @$a, $v;
         }
     }
+    return @$retval;
 }
 
 sub printChangesToParent {
-    my ($self, $parentWtr) = @_;
+    my ($self, $retval, $parentWtr) = @_;
     my $outputNr = 0;
-    my @childInfo;
+    my @childInfo = ($retval);
     foreach (@{$$self{tieObjects}}) {
         push @childInfo, $_->getChildInfo();
     }
@@ -335,10 +347,11 @@ sub while {
     my %childHandles;
     my $fm = Parallel::ForkManager->new($$self{maxProcs});
     $$self{forkManager} = $fm;
+    my @retvals;
     $fm->run_on_finish( sub {
         my ($pid) = @_;
         my $childRdr = $childHandles{$pid};
-        $self->readChangesFromChild($childRdr);
+        push @retvals, $self->readChangesFromChild($childRdr);
     });
     my $childCounter = 0;
     while ($continueSub->()) {
@@ -362,15 +375,21 @@ sub while {
         }
 
         # We're running in the child
-        $bodySub->();
+        my @retval = $bodySub->();
+        if (! defined wantarray) {
+            # Lets not waste any energy printing stuff to the parent, if the
+            # parent isn't going to use the return values anyway
+            @retval = ();
+        }
 
-        $self->printChangesToParent($parentWtr);
+        $self->printChangesToParent(\@retval, $parentWtr);
         close $parentWtr;
 
         $fm->finish($childCounter);    # pass an exit code to finish
     }
     $fm->wait_all_children;
     delete $$self{forkManager};
+    return @retvals;
 }
 
 # foreach is implemented via while above
