@@ -86,6 +86,10 @@ like this:
 
     # Now test %errors. $errors{3} should exist as teh only element
 
+Also, be sure not to call exit() in the child. That will just exit the child
+and that doesn't work. Right now, exit just makes the parent fail no-so-nicely.
+Patches to this that handle exit somehow are welcome.
+
 =head1 DESCRIPTION
 
 Often a loop performs calculations where each iteration of the loop
@@ -339,6 +343,9 @@ sub readChangesFromChild {
     while (<$childRdr>) {
         $childOutput .= $_;
     }
+
+    die "Error getting result contents from child"
+        if $childOutput eq '';
 
     my @output;
     eval {
