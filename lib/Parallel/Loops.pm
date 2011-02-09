@@ -464,9 +464,10 @@ sub foreach {
     $self->while( sub { ++$i <= $#{$arrayRef} }, sub {
         # Setup either $varRef or $_, if no such given before calling $sub->()
         if ($varRef) {
-            $$varRef = $i;
+            $$varRef = $arrayRef->[$i];
         } else {
-            $_ = $i;
+            $_ = $arrayRef->[$i];
+            # $_ = $i;
         }
         $sub->();
     });
