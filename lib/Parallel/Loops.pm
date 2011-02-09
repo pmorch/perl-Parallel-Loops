@@ -1,6 +1,6 @@
 package Parallel::Loops;
 
-our $VERSION='0.03';
+our $VERSION='0.04';
 
 =head1 NAME
 
@@ -64,6 +64,41 @@ isn't required at all:
         # Again, this is executed in a forked child
         $_ => sqrt($_);
     });
+
+=head1 Exception/Error Handling / Dying
+
+If you want some measure of exception handling you can setup a die handler:
+
+    my $dieHandler = sub {
+        my ($error) = @_;
+        print $error;
+    };
+
+    # Set it up like this
+    my $pl = Parallel::Loops->new($maxProcs, dieHandler => $dieHandler);
+    # or
+    my $pl = Parallel::Loops->new($maxProcs);
+    $pl->setDieHandler($dieHandler);
+
+If no dieHandler is configured, both foreach and while will die in the parent,
+if a child dies, with the child's error message in $@. But that will prevent
+further execution also in the parent. Set up a dieHandler if you want to be
+able to recover from an error condition, or use eval in the body like so:
+
+    my %errors;
+    $pl->share( \%errors );
+    my %returnValues = $pl->foreach( [ 0..9 ], sub {
+        # Again, this is executed in a forked child
+        eval {
+            die "Bogus error"
+                if $_ == 3;
+            $_ => sqrt($_);
+        };
+        if ($@) {
+            $errors{$_} = $@;
+        }
+    });
+    # Now test %errors... $errors{3} should exist
 
 =head1 DESCRIPTION
 
@@ -280,9 +315,17 @@ use Parallel::ForkManager;
 use UNIVERSAL qw(isa);
 
 sub new {
-    my ($class, $maxProcs) = @_;
+    my ($class, $maxProcs, %options) = @_;
     my $self = { maxProcs => $maxProcs, shareNr => 0 };
+    if ($options{dieHandler}) {
+        $$self{dieHandler} = $options{dieHandler};
+    }
     return bless $self, $class;
+}
+
+sub setDieHandler {
+    my ($self, $dieHandler) = @_;
+    $$self{dieHandler} = $dieHandler;
 }
 
 sub share {
@@ -318,7 +361,15 @@ sub readChangesFromChild {
     while (<$childRdr>) {
         $childOutput .= $_;
     }
-    my @output = @{ Storable::thaw($childOutput) };
+
+    my @output;
+    eval {
+        @output = @{ Storable::thaw($childOutput) };
+    };
+    if ($@) {
+        die "Error interpreting result from child: $@";
+    }
+    my $error = shift @output;
     my $retval = shift @output;
 
     foreach my $set (@{$$self{tieHashes}}) {
@@ -333,13 +384,20 @@ sub readChangesFromChild {
             push @$a, $v;
         }
     }
+    if ($error) {
+        if ($$self{dieHandler}) {
+            $$self{dieHandler}->($error);
+        } else {
+            die "Error from child: $error";
+        }
+    }
     return @$retval;
 }
 
 sub printChangesToParent {
-    my ($self, $retval, $parentWtr) = @_;
+    my ($self, $error, $retval, $parentWtr) = @_;
     my $outputNr = 0;
-    my @childInfo = ($retval);
+    my @childInfo = ($error, $retval);
     foreach (@{$$self{tieObjects}}) {
         push @childInfo, $_->getChildInfo();
     }
@@ -379,14 +437,19 @@ sub while {
         }
 
         # We're running in the child
-        my @retval = $bodySub->();
+        my @retval;
+        eval {
+            @retval = $bodySub->();
+        };
+        my $error = $@;
+
         if (! defined wantarray) {
             # Lets not waste any energy printing stuff to the parent, if the
             # parent isn't going to use the return values anyway
             @retval = ();
         }
 
-        $self->printChangesToParent(\@retval, $parentWtr);
+        $self->printChangesToParent($error, \@retval, $parentWtr);
         close $parentWtr;
 
         $fm->finish($childCounter);    # pass an exit code to finish
