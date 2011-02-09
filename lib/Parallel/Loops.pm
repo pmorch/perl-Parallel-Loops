@@ -283,6 +283,10 @@ An alternative pointed out by the perlmonks chatterbox could be to use
 L<Devel::Declare|http://search.cpan.org/perldoc?Devel::Declare> "if I can stand
 pain".
 
+=head1 SOURCE REPOSITORY
+
+See the L<git source on github|https://github.com/pmorch/perl-Parallel-Loops>
+
 =head1 COPYRIGHT
 
 Copyright (c) 2008 Peter Valdemar Mørch <peter@morch.com>
