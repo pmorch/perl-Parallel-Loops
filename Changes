@@ -1,3 +1,17 @@
+Version 0.04:
+    - foreach() now gives the loop correct $_ values
+      This fixes:
+      Bug #60384: foreach fails when @parameters doesn't use numbers
+                  starting with zero
+      https://rt.cpan.org/Public/Bug/Display.html?id=60384
+      and
+      Bug #60659: Does not work with string parameters
+      https://rt.cpan.org/Public/Bug/Display.html?id=60659
+    - Handle fatal errors in children e.g. if the die()
+    - Detect if child didn't print any results e.g. because 'exit' was called
+    - Don't allow $pl->share() to clobber any values that may already be in the
+      refs - preserve the initial contents
+    - Put in perldoc about two children setting same key
 Version 0.03:
     - Forgot to update README
 Version 0.02:
