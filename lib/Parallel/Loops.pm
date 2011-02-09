@@ -67,23 +67,8 @@ isn't required at all:
 
 =head1 Exception/Error Handling / Dying
 
-If you want some measure of exception handling you can setup a die handler:
-
-    my $dieHandler = sub {
-        my ($error) = @_;
-        print $error;
-    };
-
-    # Set it up like this
-    my $pl = Parallel::Loops->new($maxProcs, dieHandler => $dieHandler);
-    # or
-    my $pl = Parallel::Loops->new($maxProcs);
-    $pl->setDieHandler($dieHandler);
-
-If no dieHandler is configured, both foreach and while will die in the parent,
-if a child dies, with the child's error message in $@. But that will prevent
-further execution also in the parent. Set up a dieHandler if you want to be
-able to recover from an error condition, or use eval in the body like so:
+If you want some measure of exception handling you can use eval in the child
+like this:
 
     my %errors;
     $pl->share( \%errors );
@@ -98,7 +83,8 @@ able to recover from an error condition, or use eval in the body like so:
             $errors{$_} = $@;
         }
     });
-    # Now test %errors... $errors{3} should exist
+
+    # Now test %errors. $errors{3} should exist as teh only element
 
 =head1 DESCRIPTION
 
@@ -317,15 +303,7 @@ use UNIVERSAL qw(isa);
 sub new {
     my ($class, $maxProcs, %options) = @_;
     my $self = { maxProcs => $maxProcs, shareNr => 0 };
-    if ($options{dieHandler}) {
-        $$self{dieHandler} = $options{dieHandler};
-    }
     return bless $self, $class;
-}
-
-sub setDieHandler {
-    my ($self, $dieHandler) = @_;
-    $$self{dieHandler} = $dieHandler;
 }
 
 sub share {
@@ -385,11 +363,7 @@ sub readChangesFromChild {
         }
     }
     if ($error) {
-        if ($$self{dieHandler}) {
-            $$self{dieHandler}->($error);
-        } else {
-            die "Error from child: $error";
-        }
+        die "Error from child: $error";
     }
     return @$retval;
 }
