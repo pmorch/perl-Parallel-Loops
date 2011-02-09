@@ -467,7 +467,6 @@ sub foreach {
             $$varRef = $arrayRef->[$i];
         } else {
             $_ = $arrayRef->[$i];
-            # $_ = $i;
         }
         $sub->();
     });
