@@ -314,15 +314,19 @@ sub share {
     my ($self, @tieRefs) = @_;
     foreach my $ref (@tieRefs) {
         if (ref $ref && isa $ref, 'HASH') {
+            my %initialContents =  %$ref;
             # $storage will point to the Parallel::Loops::TiedHash object
             my $storage;
             tie %$ref, 'Parallel::Loops::TiedHash', $self, \$storage;
+            %$ref = %initialContents;
             push @{$$self{tieObjects}}, $storage;
             push @{$$self{tieHashes}}, [$$self{shareNr}, $ref];
         } elsif (ref $ref && isa $ref, 'ARRAY') {
+            my @initialContents =  @$ref;
             # $storage will point to the Parallel::Loops::TiedArray object
             my $storage;
             tie @$ref, 'Parallel::Loops::TiedArray', $self, \$storage;
+            @$ref = @initialContents;
             push @{$$self{tieObjects}}, $storage;
             push @{$$self{tieArrays}}, [$$self{shareNr}, $ref];
         } else {
