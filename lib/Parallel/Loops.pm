@@ -65,31 +65,6 @@ isn't required at all:
         $_ => sqrt($_);
     });
 
-=head1 Exception/Error Handling / Dying
-
-If you want some measure of exception handling you can use eval in the child
-like this:
-
-    my %errors;
-    $pl->share( \%errors );
-    my %returnValues = $pl->foreach( [ 0..9 ], sub {
-        # Again, this is executed in a forked child
-        eval {
-            die "Bogus error"
-                if $_ == 3;
-            $_ => sqrt($_);
-        };
-        if ($@) {
-            $errors{$_} = $@;
-        }
-    });
-
-    # Now test %errors. $errors{3} should exist as teh only element
-
-Also, be sure not to call exit() in the child. That will just exit the child
-and that doesn't work. Right now, exit just makes the parent fail no-so-nicely.
-Patches to this that handle exit somehow are welcome.
-
 =head1 DESCRIPTION
 
 Often a loop performs calculations where each iteration of the loop
@@ -210,6 +185,31 @@ execution of the loop in child processes also encounters a parallel
 loop, these will also be forked, and you'll essentially have
 $maxProcs^2 running processes. It wouldn't be too hard to implement
 such a check (either inside or outside this package).
+
+=head1 Exception/Error Handling / Dying
+
+If you want some measure of exception handling you can use eval in the child
+like this:
+
+    my %errors;
+    $pl->share( \%errors );
+    my %returnValues = $pl->foreach( [ 0..9 ], sub {
+        # Again, this is executed in a forked child
+        eval {
+            die "Bogus error"
+                if $_ == 3;
+            $_ => sqrt($_);
+        };
+        if ($@) {
+            $errors{$_} = $@;
+        }
+    });
+
+    # Now test %errors. $errors{3} should exist as the only element
+
+Also, be sure not to call exit() in the child. That will just exit the child
+and that doesn't work. Right now, exit just makes the parent fail no-so-nicely.
+Patches to this that handle exit somehow are welcome.
 
 =head1 SEE ALSO
 
