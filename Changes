@@ -1,3 +1,5 @@
+Version 0.05:
+    - Fixed UNIVERSAL import warning in perl 5.12
 Version 0.04:
     - foreach() now gives the loop correct $_ values
       This fixes:

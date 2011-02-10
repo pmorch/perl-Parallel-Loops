@@ -237,7 +237,7 @@ These should all be in perl's core:
     use IO::Handle;
     use Tie::Array;
     use Tie::Hash;
-    use UNIVERSAL qw(isa);
+    use Scalar::Util qw(reftype);
 
 =head1 BUGS / ENHANCEMENTS
 
@@ -306,7 +306,7 @@ use warnings;
 use IO::Handle;
 use Storable;
 use Parallel::ForkManager;
-use UNIVERSAL qw(isa);
+use Scalar::Util qw(reftype);
 
 sub new {
     my ($class, $maxProcs, %options) = @_;
@@ -317,7 +317,7 @@ sub new {
 sub share {
     my ($self, @tieRefs) = @_;
     foreach my $ref (@tieRefs) {
-        if (ref $ref && isa $ref, 'HASH') {
+        if (ref $ref && reftype($ref) eq 'HASH') {
             my %initialContents =  %$ref;
             # $storage will point to the Parallel::Loops::TiedHash object
             my $storage;
@@ -325,7 +325,7 @@ sub share {
             %$ref = %initialContents;
             push @{$$self{tieObjects}}, $storage;
             push @{$$self{tieHashes}}, [$$self{shareNr}, $ref];
-        } elsif (ref $ref && isa $ref, 'ARRAY') {
+        } elsif (ref $ref && reftype($ref) eq 'ARRAY') {
             my @initialContents =  @$ref;
             # $storage will point to the Parallel::Loops::TiedArray object
             my $storage;
