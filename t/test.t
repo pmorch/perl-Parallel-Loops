@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Fatal;
 
 =head1 Testing Parallel Loops
 
@@ -14,6 +15,28 @@ BEGIN { use_ok( 'Parallel::Loops' ); }
 my $maxProcs = 2;
 my $pl = new_ok( 'Parallel::Loops', [$maxProcs] );
 
+# unit tests
+{
+    my @blessed_array;
+    bless \@blessed_array, 'His::Highness';
+    like(
+        exception { $pl->share( \@blessed_array ); },
+        qr/^Can't share a blessed object/,
+        "trying to share a blessed hash fails",
+    );
+}
+
+{
+    my %blessed_hash;
+    bless \%blessed_hash, 'His::Highness';
+    like(
+        exception { $pl->share( \%blessed_hash ); },
+        qr/^Can't share a blessed object/,
+        "trying to share a blessed hash fails",
+    );
+}
+
+# integration tests
 my @iterations = ( 0 .. 4 );
 
 my %output;

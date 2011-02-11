@@ -5,5 +5,6 @@ all_from       'lib/Parallel/Loops.pm';
 
 requires       'Parallel::ForkManager' => '0.7.9';
 test_requires  'Test::More' => '0.84';
+test_requires  'Test::Fatal' => '0.003';
 
 WriteAll;
