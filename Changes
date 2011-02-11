@@ -1,5 +1,11 @@
 Version 0.05:
     - Fixed UNIVERSAL import warning in perl 5.12
+    - Throw exception when trying to share blessed objects
+      Thanks to Alexander Hartmaier <abraxxa@cpan.org>
+    - Modernize tests
+      Thanks to Alexander Hartmaier <abraxxa@cpan.org>
+    - Converted to Module::Install
+      Thanks to Alexander Hartmaier <abraxxa@cpan.org>
     - Moved Exception POD down below general Description
 Version 0.04:
     - foreach() now gives the loop correct $_ values
