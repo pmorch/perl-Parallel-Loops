@@ -1,5 +1,6 @@
-#!/usr/bin/perl -w
 use strict;
+use warnings;
+use Test::More;
 
 =head1 Testing Parallel Loops
 
@@ -8,11 +9,10 @@ We test the result structure and make sure it is what we expect. Then we do the 
 
 =cut
 
-use Test::More tests => 23;
 BEGIN { use_ok( 'Parallel::Loops' ); }
 
 my $maxProcs = 2;
-my $pl = new Parallel::Loops($maxProcs);
+my $pl = new_ok( 'Parallel::Loops', [$maxProcs] );
 
 my @iterations = ( 0 .. 4 );
 
@@ -77,3 +77,4 @@ $pl->while (
 );
 checkResults();
 
+done_testing;
