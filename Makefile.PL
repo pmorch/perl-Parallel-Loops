@@ -1,10 +1,9 @@
-use ExtUtils::MakeMaker;
+use inc::Module::Install;
 
-WriteMakefile(
-    NAME            => 'Parallel::Loops',
-    VERSION_FROM    => 'lib/Parallel/Loops.pm',
-    PREREQ_PM       => {
-        "Test::More" => 0,
-        "Parallel::ForkManager" => 0,
-    },
-);
+name           'Parallel-Loops';
+all_from       'lib/Parallel/Loops.pm';
+
+requires       'Parallel::ForkManager' => '0.7.9';
+test_requires  'Test::More' => '0.42';
+
+WriteAll;
