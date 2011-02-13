@@ -7,6 +7,9 @@ Version 0.05:
       Since, the dependency on Test::Fatal was removed
     - Converted to Module::Install
       Thanks to Alexander Hartmaier <abraxxa@cpan.org>
+    - Declare that this module requires perl version 5.8 minimum, as we rely on
+      Tie::ExtraHash which (apparently) was introduced in perl 5.8. Patches to
+      this requirement are welcome.
     - Moved Exception POD down below general Description
 Version 0.04:
     - foreach() now gives the loop correct $_ values

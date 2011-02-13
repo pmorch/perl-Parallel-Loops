@@ -2,6 +2,10 @@ package Parallel::Loops;
 
 our $VERSION='0.05';
 
+# For Tie::ExtraHash - This was the earliest perl version in which I found this
+# class
+use 5.008;
+
 =head1 NAME
 
 Parallel::Loops - Execute loops using parallel forked subprocesses
