@@ -237,7 +237,7 @@ These should all be in perl's core:
     use IO::Handle;
     use Tie::Array;
     use Tie::Hash;
-    use Scalar::Util qw(reftype);
+    use Scalar::Util qw(blessed);
 
 =head1 BUGS / ENHANCEMENTS
 
