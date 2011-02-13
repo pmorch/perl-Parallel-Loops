@@ -4,6 +4,7 @@ Version 0.05:
       Thanks to Alexander Hartmaier <abraxxa@cpan.org>
     - Modernize tests
       Thanks to Alexander Hartmaier <abraxxa@cpan.org>
+      Since, the dependency on Test::Fatal was removed
     - Converted to Module::Install
       Thanks to Alexander Hartmaier <abraxxa@cpan.org>
     - Moved Exception POD down below general Description
