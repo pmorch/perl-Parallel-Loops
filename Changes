@@ -1,4 +1,9 @@
 Version 0.05:
+    - Close pipe file handles to prevent too many open files
+      This fixes:
+      Bug #66487: Error "Couldn't open a pipe" when more input parameters are
+                  given
+      https://rt.cpan.org/Public/Bug/Display.html?id=66487
     - Fixed UNIVERSAL import warning in perl 5.12
     - Throw exception when trying to share blessed objects
       Thanks to Alexander Hartmaier <abraxxa@cpan.org>
