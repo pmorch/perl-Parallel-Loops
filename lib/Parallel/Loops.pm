@@ -410,6 +410,7 @@ sub while {
         my ($pid) = @_;
         my $childRdr = $childHandles{$pid};
         push @retvals, $self->readChangesFromChild($childRdr);
+        close $childRdr;
     });
     my $childCounter = 0;
     while ($continueSub->()) {
@@ -433,6 +434,8 @@ sub while {
         }
 
         # We're running in the child
+        close $childRdr;
+
         my @retval;
         eval {
             @retval = $bodySub->();
