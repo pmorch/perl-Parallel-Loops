@@ -309,6 +309,7 @@ use warnings;
 
 use Carp;
 use IO::Handle;
+use File::Temp qw(tempfile);
 use Storable;
 use Parallel::ForkManager;
 use Scalar::Util qw(blessed);
@@ -355,9 +356,14 @@ sub in_child {
 sub readChangesFromChild {
     my ($self, $childRdr) = @_;
     my $childOutput = '';
-    while (<$childRdr>) {
+    my $filename = <$childRdr>;
+    open my $in, $filename
+        or die "Couldn't open $filename";
+    while (<$in>) {
         $childOutput .= $_;
     }
+    close $in;
+    unlink $filename;
 
     die "Error getting result contents from child"
         if $childOutput eq '';
@@ -397,7 +403,10 @@ sub printChangesToParent {
     foreach (@{$$self{tieObjects}}) {
         push @childInfo, $_->getChildInfo();
     }
-    print $parentWtr Storable::freeze(\@childInfo); 
+    my ($fh, $filename) = tempfile();
+    print $fh Storable::freeze(\@childInfo);
+    close $fh;
+    print $parentWtr $filename;
 }
 
 sub while {

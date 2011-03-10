@@ -1,4 +1,9 @@
 Version 0.06:
+    - Use temp files for shared data instead of printing directly to the pipe.
+      This is to avoid deadlock sitations, where the pipe is only read after
+      the subprocess has finished, but the subprocess can't finish because it
+      is trying to write to the pipe, but it gets full because nobody is
+      reading it
 Version 0.05:
     - Close pipe file handles to prevent too many open files
       This fixes:
