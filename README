@@ -218,7 +218,6 @@ DEPENDENCIES
         use IO::Handle;
         use Tie::Array;
         use Tie::Hash;
-        use Scalar::Util qw(blessed);
 
 BUGS / ENHANCEMENTS
     No bugs are known at the moment. Send any reports to peter@morch.com.

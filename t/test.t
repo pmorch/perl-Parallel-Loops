@@ -26,7 +26,7 @@ my $pl = new_ok( 'Parallel::Loops', [$maxProcs] );
         or die "Expected exception when trying to share a blessed object";
     like(
         $err,
-        qr/^Can't share a blessed object/,
+        qr/^Only unblessed hash and array refs are supported by share/,
         "trying to share a blessed array fails",
     );
 }
@@ -42,7 +42,7 @@ my $pl = new_ok( 'Parallel::Loops', [$maxProcs] );
         or die "Expected exception when trying to share a blessed object";
     like(
         $err,
-        qr/^Can't share a blessed object/,
+        qr/^Only unblessed hash and array refs are supported by share/,
         "trying to share a blessed hash fails",
     );
 }

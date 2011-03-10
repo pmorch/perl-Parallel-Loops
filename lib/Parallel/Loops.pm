@@ -241,7 +241,6 @@ These should all be in perl's core:
     use IO::Handle;
     use Tie::Array;
     use Tie::Hash;
-    use Scalar::Util qw(blessed);
 
 =head1 BUGS / ENHANCEMENTS
 
@@ -312,7 +311,6 @@ use IO::Handle;
 use File::Temp qw(tempfile);
 use Storable;
 use Parallel::ForkManager;
-use Scalar::Util qw(blessed);
 
 sub new {
     my ($class, $maxProcs, %options) = @_;
@@ -323,8 +321,6 @@ sub new {
 sub share {
     my ($self, @tieRefs) = @_;
     foreach my $ref (@tieRefs) {
-        croak "Can't share a blessed object"
-            if blessed $ref;
         if (ref $ref eq 'HASH') {
             my %initialContents =  %$ref;
             # $storage will point to the Parallel::Loops::TiedHash object
@@ -342,7 +338,7 @@ sub share {
             push @{$$self{tieObjects}}, $storage;
             push @{$$self{tieArrays}}, [$$self{shareNr}, $ref];
         } else {
-            croak "Only hash and array refs are supported by share";
+            croak "Only unblessed hash and array refs are supported by share";
         }
         $$self{shareNr}++;
     }
