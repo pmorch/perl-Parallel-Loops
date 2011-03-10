@@ -1,6 +1,6 @@
 package Parallel::Loops;
 
-our $VERSION='0.05';
+our $VERSION='0.06';
 
 # For Tie::ExtraHash - This was the earliest perl version in which I found this
 # class

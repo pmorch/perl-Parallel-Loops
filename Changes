@@ -1,3 +1,4 @@
+Version 0.06:
 Version 0.05:
     - Close pipe file handles to prevent too many open files
       This fixes:
