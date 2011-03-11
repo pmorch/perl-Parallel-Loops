@@ -4,6 +4,8 @@ Version 0.06:
       the subprocess has finished, but the subprocess can't finish because it
       is trying to write to the pipe, but it gets full because nobody is
       reading it
+    - createTarball.pl: Use 'make all test manifest dist' instead of making the
+      tarball ourselves
 Version 0.05:
     - Close pipe file handles to prevent too many open files
       This fixes:
