@@ -1,4 +1,8 @@
 Version 0.06:
+    - Updated 'Performance and properties of the loop body' POD section to
+      explain that this forks for every iteration, so if each iteration is
+      tiny, you may get worse performance from Parallel::Loops than a pure
+      sequential run
     - Use temp files for shared data instead of printing directly to the pipe.
       This is to avoid deadlock sitations, where the pipe is only read after
       the subprocess has finished, but the subprocess can't finish because it

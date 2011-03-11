@@ -38,6 +38,7 @@ Parallel::Loops - Execute loops using parallel forked subprocesses
         # massive calculation that will be parallelized, so that
         # $maxProcs different processes are calculating sqrt
         # simultaneously for different values of $_ on different CPUs
+        # (Do see 'Performance and properties of the loop body' below)
 
         $returnValues{$_} = sqrt($_);
     });
@@ -214,6 +215,19 @@ like this:
 Also, be sure not to call exit() in the child. That will just exit the child
 and that doesn't work. Right now, exit just makes the parent fail no-so-nicely.
 Patches to this that handle exit somehow are welcome.
+
+=head1 Performance and properties of the loop body
+
+Keep in mind that a child process is forked every time while or foreach calls
+the provided sub. For use of Parallel::Loops to make sense, each invocation
+needs to actually do some serious work for the performance gain of parallel
+execution to outweigh the overhead of forking and communicating between the
+processes. So while sqrt() in the example above is simple, it will actually be
+slower than just running it in a standard foreach loop because of the overhead.
+
+Also, if each loop sub returns a massive amount of data, this needs to be
+communicated back to the parent process, and again that could outweigh parallel
+performance gains unless the loop body does some heavy work too.
 
 =head1 SEE ALSO
 
