@@ -10,6 +10,8 @@ Version 0.06:
       reading it
     - createTarball.pl: Use 'make all test manifest dist' instead of making the
       tarball ourselves
+    - Remove: use Scalar::Util
+    - Mention repository in Makefile.PL since there is a field for that
 Version 0.05:
     - Close pipe file handles to prevent too many open files
       This fixes:
