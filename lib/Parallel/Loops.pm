@@ -406,7 +406,12 @@ sub printChangesToParent {
     foreach (@{$$self{tieObjects}}) {
         push @childInfo, $_->getChildInfo();
     }
-    print $parentWtr Storable::freeze(\@childInfo);
+    {
+        local $SIG{PIPE} = sub {
+            die "Couldn't print to pipe";
+        };
+        print $parentWtr Storable::freeze(\@childInfo);
+    }
 }
 
 sub while {
