@@ -120,10 +120,10 @@ DESCRIPTION
     not work:
 
        $pl->while( sub { $i < 5 },
-                   sub { 
+                   sub {
                        $output{$i} = sqrt($i);
                        # Won't work!
-                       $i++ 
+                       $i++
                    }
                  );
 

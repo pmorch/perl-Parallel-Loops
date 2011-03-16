@@ -45,7 +45,7 @@ Parallel::Loops - Execute loops using parallel forked subprocesses
     foreach (@parameters) {
         printf "i: %d sqrt(i): %f\n", $_, $returnValues{$_};
     }
-  
+
 You can also use @arrays instead of %hashes, and/or while loops
 instead of foreach:
 
@@ -136,10 +136,10 @@ Note that incrementing $i in the $childBodySub like in this example
 B<will not work>:
 
    $pl->while( sub { $i < 5 },
-               sub { 
+               sub {
                    $output{$i} = sqrt($i);
                    # Won't work!
-                   $i++ 
+                   $i++
                }
              );
 
@@ -149,7 +149,7 @@ parent, where $conditionSub is evaluated. The changes that make
 $conditionSub return false eventually I<must> take place outside
 the $childBodySub so it is executed in the parent. (Adhering to
 the parallel principle that one iteration may not affect any other
-iterations - including whether to run them or not) 
+iterations - including whether to run them or not)
 
 =head2 share
 
@@ -269,7 +269,7 @@ also create forks.
 Determine the number of CPUs so that new()'s $maxProcs parameter can be
 optional. Could use e.g. Sys::Sysconf, UNIX::Processors or Sys::CPU.
 
-Maybe use function prototypes (see Prototypes under perldoc perlsub). 
+Maybe use function prototypes (see Prototypes under perldoc perlsub).
 
 Then we could do something like
 
@@ -308,7 +308,7 @@ See the L<git source on github|https://github.com/pmorch/perl-Parallel-Loops>
 
 Copyright (c) 2008 Peter Valdemar Mørch <peter@morch.com>
 
-All right reserved. This program is free software; you can redistribute it 
+All right reserved. This program is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.
 
 =head1 AUTHOR
@@ -436,7 +436,7 @@ sub while {
         binmode $parentWtr;
         binmode $childRdr;
         $parentWtr->autoflush(1);
-        
+
         # Read data from children that are ready. Block if maxProcs has been
         # reached, so that we are sure to close some file handle(s).
         for my $fh ( $select->can_read($nrRunningChildren >= $$self{maxProcs} ?
@@ -451,7 +451,7 @@ sub while {
             $nrRunningChildren++;
             close $parentWtr;
             $select->add($childRdr);
-            next; 
+            next;
         }
 
         # We're running in the child
