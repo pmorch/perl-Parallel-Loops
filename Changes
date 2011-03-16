@@ -3,6 +3,7 @@ Version 0.06:
       don't wait for processes to end which they may not be able to do if
       nobody is reading the pipe they're trying to write to.
       Thanks to Marko Nordberg
+    - Fix problem where inc/Module/Install.pm wasn't included in tarball
     - Updated 'Performance and properties of the loop body' POD section to
       explain that this forks for every iteration, so if each iteration is
       tiny, you may get worse performance from Parallel::Loops than a pure
