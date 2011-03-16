@@ -1,13 +1,12 @@
 Version 0.06:
+    - Avoid deadlock sitations by reading from pipes as soon as possible and
+      don't wait for processes to end which they may not be able to do if
+      nobody is reading the pipe they're trying to write to.
+      Thanks to Marko Nordberg
     - Updated 'Performance and properties of the loop body' POD section to
       explain that this forks for every iteration, so if each iteration is
       tiny, you may get worse performance from Parallel::Loops than a pure
       sequential run
-    - Use temp files for shared data instead of printing directly to the pipe.
-      This is to avoid deadlock sitations, where the pipe is only read after
-      the subprocess has finished, but the subprocess can't finish because it
-      is trying to write to the pipe, but it gets full because nobody is
-      reading it
     - createTarball.pl: Use 'make all test manifest dist' instead of making the
       tarball ourselves
     - Remove: use Scalar::Util

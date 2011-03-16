@@ -322,7 +322,7 @@ use warnings;
 
 use Carp;
 use IO::Handle;
-use File::Temp qw(tempfile);
+use IO::Select;
 use Storable;
 use Parallel::ForkManager;
 
@@ -365,16 +365,9 @@ sub in_child {
 
 sub readChangesFromChild {
     my ($self, $childRdr) = @_;
-    my $childOutput = '';
-    my $filename = <$childRdr>;
-    open my $in, $filename
-        or die "Couldn't open $filename";
-    while (<$in>) {
-        $childOutput .= $_;
-    }
-    close $in;
-    unlink $filename;
 
+    local $/;
+    my $childOutput = <$childRdr>;
     die "Error getting result contents from child"
         if $childOutput eq '';
 
@@ -413,25 +406,21 @@ sub printChangesToParent {
     foreach (@{$$self{tieObjects}}) {
         push @childInfo, $_->getChildInfo();
     }
-    my ($fh, $filename) = tempfile();
-    print $fh Storable::freeze(\@childInfo);
-    close $fh;
-    print $parentWtr $filename;
+    print $parentWtr Storable::freeze(\@childInfo);
 }
 
 sub while {
     my ($self, $continueSub, $bodySub) = @_;
     my %childHandles;
+    my @retvals;
+    my $childCounter = 0;
+    my $nrRunningChildren = 0;
+    my $select = IO::Select->new();
     my $fm = Parallel::ForkManager->new($$self{maxProcs});
     $$self{forkManager} = $fm;
-    my @retvals;
     $fm->run_on_finish( sub {
-        my ($pid) = @_;
-        my $childRdr = $childHandles{$pid};
-        push @retvals, $self->readChangesFromChild($childRdr);
-        close $childRdr;
+        $nrRunningChildren--;
     });
-    my $childCounter = 0;
     while ($continueSub->()) {
         # Setup pipes so the child can send info back to the parent about
         # output data.
@@ -443,12 +432,20 @@ sub while {
         binmode $childRdr;
         $parentWtr->autoflush(1);
         
-        my $pid = $fm->start( ++$childCounter );
+        # Read data from children that are ready. Block if maxProcs has been
+        # reached, so that we are sure to close some file handle(s).
+        for my $fh ( $select->can_read($nrRunningChildren >= $$self{maxProcs} ?
+                                        undef : 0) ) {
+            push @retvals, $self->readChangesFromChild($fh);
+            $select->remove($fh);
+            close $fh;
+        }
 
-        if ($pid) {
+        if ($fm->start( ++$childCounter )) {
             # We're running in the parent...
+            $nrRunningChildren++;
             close $parentWtr;
-            $childHandles{$pid} = $childRdr;
+            $select->add($childRdr);
             next; 
         }
 
@@ -472,6 +469,15 @@ sub while {
 
         $fm->finish($childCounter);    # pass an exit code to finish
     }
+
+    while (my @ready = $select->can_read()) {
+        for my $fh (@ready) {
+            push @retvals, $self->readChangesFromChild($fh);
+            $select->remove($fh);
+            close $fh;
+        }
+    }
+
     $fm->wait_all_children;
     delete $$self{forkManager};
     return @retvals;
