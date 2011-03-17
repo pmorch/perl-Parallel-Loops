@@ -277,7 +277,8 @@ BUGS / ENHANCEMENTS
     <Devel::Declare> "if I can stand pain".
 
 SOURCE REPOSITORY
-    See the <git source on github>
+    See the git source on github
+    <https://github.com/pmorch/perl-Parallel-Loops>
 
 COPYRIGHT
     Copyright (c) 2008 Peter Valdemar Mørch <peter@morch.com>

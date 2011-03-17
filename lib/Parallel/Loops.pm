@@ -302,7 +302,7 @@ pain".
 
 =head1 SOURCE REPOSITORY
 
-See the L<git source on github|https://github.com/pmorch/perl-Parallel-Loops>
+See the git source on github L<https://github.com/pmorch/perl-Parallel-Loops>
 
 =head1 COPYRIGHT
 
