@@ -1,3 +1,5 @@
+Version 0.07 on ????:
+
 Version 0.06 on Mar 17 2011:
     - Avoid deadlock sitations by reading from pipes as soon as possible and
       don't wait for processes to end which they may not be able to do if
