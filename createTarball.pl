@@ -21,7 +21,7 @@ open I, 'Changes'
 my $version = <I>;
 close I;
 chomp $version;
-$version =~ /^Version (.*):$/
+$version =~ /^Version (.*) on /
     or die "Unexpected version line: $version";
 $version = $1;
 

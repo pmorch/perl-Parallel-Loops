@@ -1,4 +1,4 @@
-Version 0.06:
+Version 0.06 on Mar 17 2011:
     - Avoid deadlock sitations by reading from pipes as soon as possible and
       don't wait for processes to end which they may not be able to do if
       nobody is reading the pipe they're trying to write to.
@@ -12,7 +12,7 @@ Version 0.06:
       tarball ourselves
     - Remove: use Scalar::Util
     - Mention repository in Makefile.PL since there is a field for that
-Version 0.05:
+Version 0.05 on Mar 9 2011:
     - Close pipe file handles to prevent too many open files
       This fixes:
       Bug #66487: Error "Couldn't open a pipe" when more input parameters are
@@ -30,7 +30,7 @@ Version 0.05:
       Tie::ExtraHash which (apparently) was introduced in perl 5.8. Patches to
       this requirement are welcome.
     - Moved Exception POD down below general Description
-Version 0.04:
+Version 0.04 on Feb 9 2011:
     - foreach() now gives the loop correct $_ values
       This fixes:
       Bug #60384: foreach fails when @parameters doesn't use numbers
@@ -44,11 +44,11 @@ Version 0.04:
     - Don't allow $pl->share() to clobber any values that may already be in the
       refs - preserve the initial contents
     - Put in perldoc about two children setting same key
-Version 0.03:
+Version 0.03 on Jun 30 2010:
     - Forgot to update README
-Version 0.02:
+Version 0.02 on Jun 30 2010:
     - Renamed tieOutput to share (API change!)
     - Let both while and foreach return values from the children
     - Use Storable instead of Data::Dumper
-Version 0.01:
+Version 0.01 on Jun 25 2010:
     - Initial version
