@@ -47,7 +47,7 @@ sub safeSystem {
         if $?;
 }
 # Make sure we have an updated README
-safeSystem('pod2text lib/Parallel/Loops.pm > README');
+safeSystem('pod2text --utf8 lib/Parallel/Loops.pm > README');
 
 # Just want to make sure we die if anything isn't up-to-date
 safeSystem('git diff --exit-code > /dev/null');
