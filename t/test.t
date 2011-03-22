@@ -111,4 +111,26 @@ $pl->while (
 );
 checkResults();
 
+if ($$pl{workingSelect}) {
+    $$pl{workingSelect} = 0;
+    %output = (); @pids = ();
+
+    my $i = -1;
+    $pl->while (
+        sub { ++$i < scalar(@iterations) },
+        sub {
+            $output{$i} = {
+                pid => $$,
+                struct => {
+                    foo => 'FOO',
+                    bar => 'BAR'
+                }
+            };
+            push @pids, $$;
+        }
+    );
+    checkResults();
+    $$pl{workingSelect} = 1;
+}
+
 done_testing;

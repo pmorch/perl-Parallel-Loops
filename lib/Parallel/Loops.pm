@@ -38,7 +38,7 @@ Parallel::Loops - Execute loops using parallel forked subprocesses
         # massive calculation that will be parallelized, so that
         # $maxProcs different processes are calculating sqrt
         # simultaneously for different values of $_ on different CPUs
-        # (Do see 'Performance and properties of the loop body' below)
+        # (Do see 'Performance' / 'Properties of the loop body' below)
 
         $returnValues{$_} = sqrt($_);
     });
@@ -216,7 +216,9 @@ Also, be sure not to call exit() in the child. That will just exit the child
 and that doesn't work. Right now, exit just makes the parent fail no-so-nicely.
 Patches to this that handle exit somehow are welcome.
 
-=head1 Performance and properties of the loop body
+=head1 Performance
+
+=head2 Properties of the loop body
 
 Keep in mind that a child process is forked every time while or foreach calls
 the provided sub. For use of Parallel::Loops to make sense, each invocation
@@ -228,6 +230,33 @@ slower than just running it in a standard foreach loop because of the overhead.
 Also, if each loop sub returns a massive amount of data, this needs to be
 communicated back to the parent process, and again that could outweigh parallel
 performance gains unless the loop body does some heavy work too.
+
+=head2 Linux and Windows Comparison
+
+On the same VMware host, I ran this script in Debian Linux and Windows XP
+virtual machines respectively. The script runs a "no-op" sub in 1000 child
+processes two in parallel at a time
+
+    my $pl = Parallel::Loops->new(2);
+    $pl->foreach( [1..1000], sub {} );
+
+For comparison, that took:
+
+   7.3 seconds on Linux
+  43   seconds on Strawberry Perl for Windows
+ 240   seconds on Cygwin for Windows
+
+=head2 fork() e.g. on Windows
+
+On some platforms the fork() is emulated. Be sure to read perlfork.
+
+=head2 Temporary files unless select() works - e.g. on Windows
+
+E.g. on Windows, select is only supported for sockets, and not for pipes. So we
+use temporary files to store the information sent from the child to the parent.
+This adds a little extra overhead. See perlport for other platforms where there
+are problems with select. Parallel::Loops tests for a working select() and uses
+temporary files otherwise.
 
 =head1 SEE ALSO
 
@@ -323,13 +352,39 @@ use warnings;
 use Carp;
 use IO::Handle;
 use IO::Select;
+use File::Temp qw(tempfile);
 use Storable;
 use Parallel::ForkManager;
 
 sub new {
     my ($class, $maxProcs, %options) = @_;
-    my $self = { maxProcs => $maxProcs, shareNr => 0 };
+    my $self = {
+        maxProcs => $maxProcs,
+        shareNr => 0,
+        workingSelect => testWorkingSelect(),
+    };
     return bless $self, $class;
+}
+
+sub testWorkingSelect {
+    my $reader = IO::Handle->new();
+    my $writer  = IO::Handle->new();
+    pipe( $reader, $writer )
+        or die "Couldn't open a pipe";
+    $writer->autoflush(1);
+    my $select = IO::Select->new();
+    $select->add($reader);
+    print $writer "test\n";
+
+    # There should be data right away, so lets not risk blocking if it is
+    # unreliable
+    my @handles = $select->can_read(0);
+    my $working = (scalar(@handles) == 1);
+
+    close $reader;
+    close $writer;
+
+    return $working;
 }
 
 sub share {
@@ -366,8 +421,23 @@ sub in_child {
 sub readChangesFromChild {
     my ($self, $childRdr) = @_;
 
-    local $/;
-    my $childOutput = <$childRdr>;
+    my $childOutput;
+
+    if ($$self{workingSelect}) {
+        local $/;
+        $childOutput = <$childRdr>;
+    } else {
+        my $filename = <$childRdr>;
+        open my $in, $filename
+            or die "Couldn't open $filename";
+        {
+            local $/;
+            $childOutput = <$in>;
+        }
+        close $in;
+        unlink $filename;
+
+    }
     die "Error getting result contents from child"
         if $childOutput eq '';
 
@@ -410,21 +480,40 @@ sub printChangesToParent {
         local $SIG{PIPE} = sub {
             die "Couldn't print to pipe";
         };
-        print $parentWtr Storable::freeze(\@childInfo);
+        if ($$self{workingSelect}) {
+            print $parentWtr Storable::freeze(\@childInfo);
+        } else {
+            my ($fh, $filename) = tempfile();
+            print $fh Storable::freeze(\@childInfo);
+            close $fh;
+            print $parentWtr $filename;
+        }
     }
 }
 
 sub while {
     my ($self, $continueSub, $bodySub) = @_;
-    my %childHandles;
     my @retvals;
+
+    # This is used if $$self{workingSelect}
     my $childCounter = 0;
     my $nrRunningChildren = 0;
     my $select = IO::Select->new();
+
+    # Else this is used
+    my %childHandles;
+
     my $fm = Parallel::ForkManager->new($$self{maxProcs});
     $$self{forkManager} = $fm;
     $fm->run_on_finish( sub {
-        $nrRunningChildren--;
+        my ($pid) = @_;
+        if ($$self{workingSelect}) {
+            $nrRunningChildren--;
+        } else {
+            my $childRdr = $childHandles{$pid};
+            push @retvals, $self->readChangesFromChild($childRdr);
+            close $childRdr;
+        }
     });
     while ($continueSub->()) {
         # Setup pipes so the child can send info back to the parent about
@@ -437,20 +526,29 @@ sub while {
         binmode $childRdr;
         $parentWtr->autoflush(1);
 
-        # Read data from children that are ready. Block if maxProcs has been
-        # reached, so that we are sure to close some file handle(s).
-        for my $fh ( $select->can_read($nrRunningChildren >= $$self{maxProcs} ?
-                                        undef : 0) ) {
-            push @retvals, $self->readChangesFromChild($fh);
-            $select->remove($fh);
-            close $fh;
+        if ($$self{workingSelect}) {
+            # Read data from children that are ready. Block if maxProcs has
+            # been reached, so that we are sure to close some file handle(s).
+            for my $fh (
+                $select->can_read($nrRunningChildren >= $$self{maxProcs} ?
+                                  undef : 0)
+            ) {
+                push @retvals, $self->readChangesFromChild($fh);
+                $select->remove($fh);
+                close $fh;
+            }
         }
 
-        if ($fm->start( ++$childCounter )) {
+        my $pid = $fm->start( ++$childCounter );
+        if ($pid) {
             # We're running in the parent...
-            $nrRunningChildren++;
             close $parentWtr;
-            $select->add($childRdr);
+            if ($$self{workingSelect}) {
+                $nrRunningChildren++;
+                $select->add($childRdr);
+            } else {
+                $childHandles{$pid} = $childRdr;
+            }
             next;
         }
 
@@ -475,11 +573,13 @@ sub while {
         $fm->finish($childCounter);    # pass an exit code to finish
     }
 
-    while (my @ready = $select->can_read()) {
-        for my $fh (@ready) {
-            push @retvals, $self->readChangesFromChild($fh);
-            $select->remove($fh);
-            close $fh;
+    if ($$self{workingSelect}) {
+        while (my @ready = $select->can_read()) {
+            for my $fh (@ready) {
+                push @retvals, $self->readChangesFromChild($fh);
+                $select->remove($fh);
+                close $fh;
+            }
         }
     }
 

@@ -26,7 +26,7 @@ SYNOPSIS
             # massive calculation that will be parallelized, so that
             # $maxProcs different processes are calculating sqrt
             # simultaneously for different values of $_ on different CPUs
-            # (Do see 'Performance and properties of the loop body' below)
+            # (Do see 'Performance' / 'Properties of the loop body' below)
 
             $returnValues{$_} = sqrt($_);
         });
@@ -196,7 +196,8 @@ Exception/Error Handling / Dying
     child and that doesn't work. Right now, exit just makes the parent fail
     no-so-nicely. Patches to this that handle exit somehow are welcome.
 
-Performance and properties of the loop body
+Performance
+  Properties of the loop body
     Keep in mind that a child process is forked every time while or foreach
     calls the provided sub. For use of Parallel::Loops to make sense, each
     invocation needs to actually do some serious work for the performance
@@ -209,6 +210,30 @@ Performance and properties of the loop body
     be communicated back to the parent process, and again that could
     outweigh parallel performance gains unless the loop body does some heavy
     work too.
+
+  Linux and Windows Comparison
+    On the same VMware host, I ran this script in Debian Linux and Windows
+    XP virtual machines respectively. The script runs a "no-op" sub in 1000
+    child processes two in parallel at a time
+
+        my $pl = Parallel::Loops->new(2);
+        $pl->foreach( [1..1000], sub {} );
+
+    For comparison, that took:
+
+       7.3 seconds on Linux
+      43   seconds on Strawberry Perl for Windows
+     240   seconds on Cygwin for Windows
+
+  fork() e.g. on Windows
+    On some platforms the fork() is emulated. Be sure to read perlfork.
+
+  Temporary files unless select() works - e.g. on Windows
+    E.g. on Windows, select is only supported for sockets, and not for
+    pipes. So we use temporary files to store the information sent from the
+    child to the parent. This adds a little extra overhead. See perlport for
+    other platforms where there are problems with select. Parallel::Loops
+    tests for a working select() and uses temporary files otherwise.
 
 SEE ALSO
     This module uses fork(). ithreads could have been possible too, but was
