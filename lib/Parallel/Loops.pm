@@ -430,6 +430,7 @@ sub readChangesFromChild {
         my $filename = <$childRdr>;
         open my $in, $filename
             or die "Couldn't open $filename";
+        binmode $in;
         {
             local $/;
             $childOutput = <$in>;
