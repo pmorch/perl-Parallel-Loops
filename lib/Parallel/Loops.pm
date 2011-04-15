@@ -485,6 +485,7 @@ sub printChangesToParent {
             print $parentWtr Storable::freeze(\@childInfo);
         } else {
             my ($fh, $filename) = tempfile();
+            binmode $fh;
             print $fh Storable::freeze(\@childInfo);
             close $fh;
             print $parentWtr $filename;
