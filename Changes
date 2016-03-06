@@ -1,3 +1,6 @@
+Version 0.08 on Mar 6 2016:
+    - Introduce $finishSub for while() to make it easy/possible to report
+      progress in the parent.
 Version 0.07 on Mar 23 2011:
     - Use IO::Select if select works, and temp files otherwise (e.g. on
       Windows)
