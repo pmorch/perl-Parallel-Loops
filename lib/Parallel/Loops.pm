@@ -119,7 +119,7 @@ If you like loop variables, you can run it like so:
 
 =head2 while loop
 
-  $pl->while($conditionSub, $childBodySub)
+  $pl->while($conditionSub, $childBodySub [,$finishSub])
 
 Essentially, this does something conceptually similar to:
 
@@ -130,7 +130,7 @@ Essentially, this does something conceptually similar to:
 except that $childBodySub->() is executed in a forked child process.
 Return values are transfered via share() like in L</foreach loop> above.
 
-=head3 while loops must affect condition outside $childBodySub
+=head3 While loops must affect condition outside $childBodySub
 
 Note that incrementing $i in the $childBodySub like in this example
 B<will not work>:
@@ -150,6 +150,24 @@ $conditionSub return false eventually I<must> take place outside
 the $childBodySub so it is executed in the parent. (Adhering to
 the parallel principle that one iteration may not affect any other
 iterations - including whether to run them or not)
+
+=head3 Optional $finishSub parameter
+
+In order to track progress, an optional C<$finishSub> can be provided. It will
+be called whenever a child finishes. The return value from the C<$conditionSub>
+is remembered and provided to the C<$finishSub> as a reference:
+
+    my $i = 0;
+    my %returnValues = $pl->while (
+        sub { $i++ < 10 ? $i : 0 },
+        sub {
+            return ($i, sqrt($i));
+        },
+        sub {
+            my ($i) = @_;
+            printf "Child %d has finished\n", $i;
+        }
+    );
 
 =head2 share
 
@@ -419,7 +437,7 @@ sub in_child {
 }
 
 sub readChangesFromChild {
-    my ($self, $childRdr) = @_;
+    my ($self, $childRdr, $childFinishSub) = @_;
 
     my $childOutput;
 
@@ -467,6 +485,8 @@ sub readChangesFromChild {
     if ($error) {
         die "Error from child: $error";
     }
+    $childFinishSub->()
+        if $childFinishSub;
     return @$retval;
 }
 
@@ -494,7 +514,7 @@ sub printChangesToParent {
 }
 
 sub while {
-    my ($self, $continueSub, $bodySub) = @_;
+    my ($self, $continueSub, $bodySub, $finishSub) = @_;
     my @retvals;
 
     # This is used if $$self{workingSelect}
@@ -507,17 +527,20 @@ sub while {
 
     my $fm = Parallel::ForkManager->new($$self{maxProcs});
     $$self{forkManager} = $fm;
+    my %childFinishSubs;
     $fm->run_on_finish( sub {
         my ($pid) = @_;
         if ($$self{workingSelect}) {
             $nrRunningChildren--;
         } else {
             my $childRdr = $childHandles{$pid};
-            push @retvals, $self->readChangesFromChild($childRdr);
+            push @retvals, $self->readChangesFromChild(
+                $childRdr, $childFinishSubs{$childRdr}
+            );
             close $childRdr;
         }
     });
-    while ($continueSub->()) {
+    while (my $childData = $continueSub->()) {
         # Setup pipes so the child can send info back to the parent about
         # output data.
         my $parentWtr = IO::Handle->new();
@@ -528,14 +551,22 @@ sub while {
         binmode $childRdr;
         $parentWtr->autoflush(1);
 
+        if ($finishSub) {
+            $childFinishSubs{$childRdr} = sub {
+                $finishSub->($childData);
+            };
+        }
+
         if ($$self{workingSelect}) {
             # Read data from children that are ready. Block if maxProcs has
             # been reached, so that we are sure to close some file handle(s).
-            for my $fh (
-                $select->can_read($nrRunningChildren >= $$self{maxProcs} ?
-                                  undef : 0)
-            ) {
-                push @retvals, $self->readChangesFromChild($fh);
+            my @ready = $select->can_read(
+                $nrRunningChildren >= $$self{maxProcs} ?  undef : 0
+            );
+            for my $fh ( @ready ) {
+                push @retvals, $self->readChangesFromChild(
+                    $fh, $childFinishSubs{$fh}
+                );
                 $select->remove($fh);
                 close $fh;
             }
@@ -578,7 +609,9 @@ sub while {
     if ($$self{workingSelect}) {
         while (my @ready = $select->can_read()) {
             for my $fh (@ready) {
-                push @retvals, $self->readChangesFromChild($fh);
+                push @retvals, $self->readChangesFromChild(
+                    $fh, $childFinishSubs{$fh}
+                );
                 $select->remove($fh);
                 close $fh;
             }
