@@ -190,6 +190,33 @@ array can be useful and fine.
 If you need to be able to determine which iteration generated what output, use
 a hash instead.
 
+## set\_waitpid\_blocking\_sleep
+
+This is about blocking calls.  When it comes to waiting for child processes to
+terminate, Parallel::ForkManager (and hence Parallel::Loops) is between a rock
+and a hard place. The underlying Perl waitpid function that the module relies
+on can block until either one specific or any child process terminate, but not
+for a process part of a given group.
+
+This means that the module can do one of two things when it waits for one of
+its child processes to terminate:
+
+**Only wait for its own child processes** This is the default and involves
+sleeping between checking whether a process has exited. This is the reason why
+the above simple examples needlessly all take at least one second. But it is
+safe, in that other processes can exit safely.
+
+**Block until any process terminate** This is faster, but no the default as it
+is optentialy unsafe.
+
+To get the unsafe behavior:
+
+    $pl->set_waitpid_blocking_sleep(0);
+
+All `set_waitpid_blocking_sleep` does is setup _exactly_ the same behavior in
+`Parallel::ForkManager`. See [Parallel::ForkManager#BLOCKING-CALLS](https://metacpan.org/pod/Parallel::ForkManager#BLOCKING-CALLS) for a
+much more thorough description.
+
 ## Recursive forking is possible
 
 Note that no check is performed for recursive forking: If the main
