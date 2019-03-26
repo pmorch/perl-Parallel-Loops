@@ -323,12 +323,12 @@ I believe this is the only dependency that isn't part of core perl:
 
     use Parallel::ForkManager;
 
-These should all be in perl's core:
+These are in perl's core:
 
-    use Storable;
-    use IO::Handle;
-    use Tie::Array;
-    use Tie::Hash;
+    use Storable;     # Since perl v5.7.3
+    use IO::Handle;   # Since perl 5.00307
+    use Tie::Array;   # Since perl 5.005
+    use Tie::Hash;    # Since perl 5.002
 
 =head1 BUGS / ENHANCEMENTS
 
