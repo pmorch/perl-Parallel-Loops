@@ -1,3 +1,5 @@
+Version 0.12 on Jan 9 2024:
+    - Fix a couple of spelling mistakes
 Version 0.11 on Mar 26 2019:
     - Allow callers to setup Parallel::ForkManager's
       set_waitpid_blocking_sleep($sleep)
