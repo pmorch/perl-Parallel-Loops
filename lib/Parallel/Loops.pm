@@ -216,8 +216,8 @@ sleeping between checking whether a process has exited. This is the reason why
 the above simple examples needlessly all take at least one second. But it is
 safe, in that other processes can exit safely.
 
-B<Block until any process terminate> This is faster, but no the default as it
-is optentialy unsafe.
+B<Block until any process terminate> This is faster, but not the default as it
+is potentialy unsafe.
 
 To get the unsafe behavior:
 

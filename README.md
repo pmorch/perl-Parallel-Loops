@@ -206,15 +206,15 @@ sleeping between checking whether a process has exited. This is the reason why
 the above simple examples needlessly all take at least one second. But it is
 safe, in that other processes can exit safely.
 
-**Block until any process terminate** This is faster, but no the default as it
-is optentialy unsafe.
+**Block until any process terminate** This is faster, but not the default as it
+is potentialy unsafe.
 
 To get the unsafe behavior:
 
     $pl->set_waitpid_blocking_sleep(0);
 
 All `set_waitpid_blocking_sleep` does is setup _exactly_ the same behavior in
-`Parallel::ForkManager`. See [Parallel::ForkManager#BLOCKING-CALLS](https://metacpan.org/pod/Parallel::ForkManager#BLOCKING-CALLS) for a
+`Parallel::ForkManager`. See [Parallel::ForkManager#BLOCKING-CALLS](https://metacpan.org/pod/Parallel%3A%3AForkManager%23BLOCKING-CALLS) for a
 much more thorough description.
 
 ## Recursive forking is possible
